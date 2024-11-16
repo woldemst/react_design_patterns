@@ -1,16 +1,19 @@
 import { SplitScreen } from "./SplitScreen";
 
-const LeftPanel = () => {
-  return <div>Left panel content</div>;
+const LeftPanel = ({ name }) => {
+  return <div style={{ backgroundColor: "lightblue" }}>{name}</div>;
 };
 
-const RightPanel = () => {
-  return <div>Right panel content</div>;
+const RightPanel = ({ message }) => {
+  return <div style={{ backgroundColor: "lightgreen" }} >{message}</div>;
 };
 
 const App = () => {
   return (
-    <SplitScreen left={LeftPanel} right={RightPanel} />
+    <SplitScreen leftWeight={1} rightWeight={3}>
+      <LeftPanel name={"John Doe"} />
+      <RightPanel message={"Hello World"} />
+    </SplitScreen>
   );
 };
 
