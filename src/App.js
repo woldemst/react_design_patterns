@@ -1,5 +1,5 @@
 import { SmallPersonListItem } from "./people/SmallPersonListItem";
-import { RegulatList } from "./RegulatList";
+import { RegularList } from "./RegularList";
 
 const people = [{
   name: 'John Doe',
@@ -36,7 +36,7 @@ const products = [{
 }];
 const App = () => {
   return (
-    <RegulatList items={people} resourceName="person" itemComponent={SmallPersonListItem} />
+    <RegularList items={people} resourceName="person" itemComponent={SmallPersonListItem} />
   );
 };
 
