@@ -1,20 +1,15 @@
 
 import { CurrentUserLoader } from "./CurrentUserLoader";
+import { ResourceLoader } from "./ResourceLoader";
 import { UserInfo } from "./UserInfo";
 import { UserLoader } from "./UserLoader";
 
 const App = () => {
   return (
     <>
-      <UserLoader userId={"234"}>
+      <ResourceLoader resourceUrl={'/users/123'} resourceName={'user'} >
         <UserInfo />
-      </UserLoader>
-      <UserLoader userId={"123"}>
-        <UserInfo />
-      </UserLoader>
-      <UserLoader userId={"456"}>
-        <UserInfo />
-      </UserLoader>
+      </ResourceLoader>
     </>
   );
 };
