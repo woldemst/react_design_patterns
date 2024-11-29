@@ -19,7 +19,7 @@ const ModalBody = styled.div`
 `;
 
 
-export const Modal = ({ children }) => {
+export const UncontolledModal = ({ children }) => {
     const [shouldShow, setShouldShow] = useState(false);
 
     return (
