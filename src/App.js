@@ -1,26 +1,31 @@
 import { useState } from "react";
-
-import { UncontolledForm } from "./UncontolledForm";
-import { UncontolledModal } from "./UncontolledModal";
-import { ControlledModal } from "./ControlledModal";
-
+import { UncontolledOnboardingFlow } from "./UncontrolledOnboardingFlow";
 const App = () => {
-  const [shouldShowModal, setShouldShowModal] = useState(false);
+  const StepOne = ({ goToNext }) => (
+    <>
+      <h1>Step One</h1>;<button onClick={goToNext}>Step 1</button>
+    </>
+  );
+
+  const StepTwo = ({ goToNext }) => (
+    <>
+      <h1>Step Two</h1>;<button onClick={goToNext}>Step 2</button>
+    </>
+  );
+
+  const StepThree = ({ goToNext }) => (
+    <>
+      <h1>Step Three</h1>;<button onClick={goToNext}>Step 3</button>
+    </>
+  );
+
   return (
     <>
-      <ControlledModal
-        shouldShow={shouldShowModal}
-        onRequestClose={() => setShouldShowModal(false)}
-      >
-        <h1>Hello</h1>
-      </ControlledModal>
-      <button
-        onClick={() => {
-          setShouldShowModal(!shouldShowModal);
-        }}
-      >
-        {shouldShowModal ? "Hide Modal" : "Show Modal"}
-      </button>
+      <UncontolledOnboardingFlow>
+        <StepOne />
+        <StepTwo />
+        <StepThree />
+      </UncontolledOnboardingFlow>
     </>
   );
 };
