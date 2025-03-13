@@ -68,3 +68,70 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+
+import os
+import json
+import numpy as np
+import psycopg2
+from PIL import Image
+from transformers import CLIPProcessor, CLIPModel
+
+# Load CLIP model for embeddings
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+# PostgreSQL connection
+conn = psycopg2.connect("dbname=your_db user=your_user password=your_password host=localhost")
+cursor = conn.cursor()
+
+# Create table if not exists
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS images (
+        id SERIAL PRIMARY KEY,
+        filename TEXT,
+        width INT,
+        height INT,
+        format TEXT,
+        metadata JSONB,
+        embedding FLOAT8[]
+    )
+""")
+conn.commit()
+
+def process_images(folder):
+    for file in os.listdir(folder):
+        if file.endswith(("jpg", "png", "jpeg")):
+            image_path = os.path.join(folder, file)
+
+            # Extract metadata
+            img = Image.open(image_path)
+            width, height = img.size
+            img_format = img.format
+
+            metadata = {
+                "filename": file,
+                "width": width,
+                "height": height,
+                "format": img_format
+            }
+
+            # Generate embedding
+            inputs = processor(images=img, return_tensors="pt")
+            embedding = model.get_image_features(**inputs).detach().numpy().flatten().tolist()
+
+            # Insert into PostgreSQL
+            cursor.execute("""
+                INSERT INTO images (filename, width, height, format, metadata, embedding)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (file, width, height, img_format, json.dumps(metadata), embedding))
+
+            conn.commit()
+            print(f"Processed {file}")
+
+# Run on dataset
+process_images("./dataset/images")
+
+cursor.close()
+conn.close()
