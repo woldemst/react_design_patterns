@@ -69,69 +69,67 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
 
-
-
 import os
+import torch
 import json
-import numpy as np
-import psycopg2
-from PIL import Image
+import PIL.Image as Image
+from sqlalchemy import create_engine, Column, Integer, String, LargeBinary
+from sqlalchemy.orm import sessionmaker, declarative_base
 from transformers import CLIPProcessor, CLIPModel
+from pgvector.sqlalchemy import Vector
 
-# Load CLIP model for embeddings
+# ---- CONFIGURE POSTGRESQL CONNECTION ----
+DB_URL = "postgresql+pgvector://username:password@localhost:5432/your_database"
+engine = create_engine(DB_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+Base = declarative_base()
+
+# ---- DEFINE DATABASE MODEL ----
+class ImageData(Base):
+    __tablename__ = "images"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String, unique=True, nullable=False)
+    format = Column(String)
+    size = Column(String)
+    embedding = Column(Vector(512))  # CLIP embeddings are 512-dimensional
+
+Base.metadata.create_all(engine)
+
+# ---- LOAD CLIP MODEL ----
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-# PostgreSQL connection
-conn = psycopg2.connect("dbname=your_db user=your_user password=your_password host=localhost")
-cursor = conn.cursor()
+# ---- PROCESS IMAGES ----
+image_folder = "./dataset/images"
 
-# Create table if not exists
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS images (
-        id SERIAL PRIMARY KEY,
-        filename TEXT,
-        width INT,
-        height INT,
-        format TEXT,
-        metadata JSONB,
-        embedding FLOAT8[]
-    )
-""")
-conn.commit()
+for filename in os.listdir(image_folder):
+    if filename.endswith((".jpg", ".png", ".jpeg")):
+        image_path = os.path.join(image_folder, filename)
+        
+        # Extract metadata
+        img = Image.open(image_path)
+        metadata = {
+            "filename": filename,
+            "format": img.format,
+            "size": f"{img.width}x{img.height}"
+        }
 
-def process_images(folder):
-    for file in os.listdir(folder):
-        if file.endswith(("jpg", "png", "jpeg")):
-            image_path = os.path.join(folder, file)
+        # Generate embedding
+        inputs = processor(images=img, return_tensors="pt")
+        with torch.no_grad():
+            embedding = model.get_image_features(**inputs).squeeze().tolist()
 
-            # Extract metadata
-            img = Image.open(image_path)
-            width, height = img.size
-            img_format = img.format
+        # Save to database
+        img_entry = ImageData(
+            filename=metadata["filename"],
+            format=metadata["format"],
+            size=metadata["size"],
+            embedding=embedding
+        )
+        session.add(img_entry)
 
-            metadata = {
-                "filename": file,
-                "width": width,
-                "height": height,
-                "format": img_format
-            }
-
-            # Generate embedding
-            inputs = processor(images=img, return_tensors="pt")
-            embedding = model.get_image_features(**inputs).detach().numpy().flatten().tolist()
-
-            # Insert into PostgreSQL
-            cursor.execute("""
-                INSERT INTO images (filename, width, height, format, metadata, embedding)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (file, width, height, img_format, json.dumps(metadata), embedding))
-
-            conn.commit()
-            print(f"Processed {file}")
-
-# Run on dataset
-process_images("./dataset/images")
-
-cursor.close()
-conn.close()
+session.commit()
+session.close()
+print("✅ Images processed and stored in PostgreSQL")
